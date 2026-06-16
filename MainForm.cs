@@ -9,14 +9,52 @@ namespace TarotTraining;
 /// </summary>
 public sealed class MainForm : Form
 {
+    // --- Slate & Gold palette (sits over the grey/white marble background) ---
+    private static readonly Color Charcoal      = Color.FromArgb(51, 51, 61);
+    private static readonly Color CharcoalHover  = Color.FromArgb(69, 69, 80);
+    private static readonly Color CharcoalDown   = Color.FromArgb(40, 40, 48);
+    private static readonly Color Gold           = Color.FromArgb(200, 161, 75);
+    private static readonly Color GoldHover      = Color.FromArgb(216, 179, 94);
+    private static readonly Color GoldDown       = Color.FromArgb(180, 145, 66);
+    private static readonly Color GoldBorderDark = Color.FromArgb(168, 133, 56);
+    private static readonly Color DarkText       = Color.FromArgb(42, 42, 42);
+    private static readonly Color MarbleText     = Color.FromArgb(43, 43, 48);
+    private static readonly Color CorrectGreen   = Color.FromArgb(21, 128, 61);
+
+    /// <summary>Gives a button the Slate &amp; Gold look. Primary = the filled gold call-to-action.</summary>
+    private static void StyleButton(Button b, bool primary = false)
+    {
+        b.FlatStyle = FlatStyle.Flat;
+        b.UseVisualStyleBackColor = false;
+        b.FlatAppearance.BorderSize = 1;
+        if (primary)
+        {
+            b.BackColor = Gold;
+            b.ForeColor = DarkText;
+            b.FlatAppearance.BorderColor = GoldBorderDark;
+            b.FlatAppearance.MouseOverBackColor = GoldHover;
+            b.FlatAppearance.MouseDownBackColor = GoldDown;
+        }
+        else
+        {
+            b.BackColor = Charcoal;
+            b.ForeColor = Gold;
+            b.FlatAppearance.BorderColor = Gold;
+            b.FlatAppearance.MouseOverBackColor = CharcoalHover;
+            b.FlatAppearance.MouseDownBackColor = CharcoalDown;
+        }
+    }
+
     private readonly TarotDeck _deck;
     private readonly Random _rng = new();
     private readonly Dictionary<string, Image> _imageCache = new();
     private readonly Image? _marble;
 
-    // The card-image panel and the small cover that hides the card's printed name while guessing.
+    // The card-image panel and the veil that hides the card's printed name while guessing.
     private readonly Panel _cardPanel = new();
-    private readonly Panel _nameCover = new();
+    private readonly MysticVeil _nameCover = new();
+    private System.Windows.Forms.Timer? _slideTimer;
+    private int _veilHomeTop;
 
     private readonly RadioButton[] _choices = new RadioButton[4];
     private readonly Button _checkButton = new();
@@ -66,13 +104,12 @@ public sealed class MainForm : Form
         _cardPanel.BackColor = Color.Transparent;
         _cardPanel.BackgroundImageLayout = ImageLayout.Stretch;
 
-        _nameCover.Location = new Point(-2, 426);
-        _nameCover.Size = new Size(290, 82);
-        _nameCover.BorderStyle = BorderStyle.Fixed3D;
-        _nameCover.BackgroundImage = _marble;
-        _nameCover.BackgroundImageLayout = ImageLayout.None;
-        _nameCover.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        // The veil sits over the lower name band of the card and slides away on reveal.
+        _veilHomeTop = 388;
+        _nameCover.Location = new Point(-2, _veilHomeTop);
+        _nameCover.Size = new Size(290, 120);
         _cardPanel.Controls.Add(_nameCover);
+        _nameCover.BringToFront();
 
         Controls.Add(_cardPanel);
     }
@@ -94,6 +131,7 @@ public sealed class MainForm : Form
                 Location = new Point(3, 3 + i * 86),
                 Size = new Size(398, 80),
                 Font = new Font("Segoe UI", 14.25f),
+                ForeColor = MarbleText,
                 UseVisualStyleBackColor = true,
             };
             _choices[i] = rb;
@@ -102,39 +140,40 @@ public sealed class MainForm : Form
 
         _checkButton.Location = new Point(3, 347);
         _checkButton.Size = new Size(398, 40);
-        _checkButton.Font = new Font("Segoe UI", 15.75f);
+        _checkButton.Font = new Font("Segoe UI", 15.75f, FontStyle.Bold);
         _checkButton.Text = "Check";
-        _checkButton.UseVisualStyleBackColor = true;
         _checkButton.Click += OnCheck;
+        StyleButton(_checkButton, primary: true);
         panel.Controls.Add(_checkButton);
 
         _scoreLabel.Location = new Point(4, 394);
         _scoreLabel.Size = new Size(211, 66);
-        _scoreLabel.Font = new Font("Segoe UI", 12f);
+        _scoreLabel.Font = new Font("Segoe UI", 12f, FontStyle.Bold);
+        _scoreLabel.ForeColor = MarbleText;
         panel.Controls.Add(_scoreLabel);
 
         _detailButton.Location = new Point(3, 463);
         _detailButton.Size = new Size(91, 40);
         _detailButton.Font = new Font("Segoe UI", 8.25f);
         _detailButton.Text = "Card\r\nDetails";
-        _detailButton.UseVisualStyleBackColor = true;
         _detailButton.Click += OnCardDetails;
+        StyleButton(_detailButton);
         panel.Controls.Add(_detailButton);
 
         _musicButton.Location = new Point(100, 463);
         _musicButton.Size = new Size(66, 40);
         _musicButton.Font = new Font("Segoe UI", 8.25f);
         _musicButton.Text = "Stop\r\nMusic";
-        _musicButton.UseVisualStyleBackColor = true;
         _musicButton.Click += OnToggleMusic;
+        StyleButton(_musicButton);
         panel.Controls.Add(_musicButton);
 
         _nextButton.Location = new Point(269, 463);
         _nextButton.Size = new Size(132, 40);
-        _nextButton.Font = new Font("Segoe UI", 15.75f);
+        _nextButton.Font = new Font("Segoe UI", 15.75f, FontStyle.Bold);
         _nextButton.Text = "Next";
-        _nextButton.UseVisualStyleBackColor = true;
         _nextButton.Click += OnNext;
+        StyleButton(_nextButton, primary: true);
         panel.Controls.Add(_nextButton);
 
         Controls.Add(panel);
@@ -147,6 +186,7 @@ public sealed class MainForm : Form
             Location = new Point(12, 528),
             Size = new Size(703, 48),
             BackColor = Color.Transparent,
+            ForeColor = MarbleText,
             Text = "Select Suit - Right Click to see short descriptions",
         };
 
@@ -170,6 +210,7 @@ public sealed class MainForm : Form
                 AutoSize = true,
                 Location = new Point(x, 17),
                 Font = new Font("Segoe UI", 12f),
+                ForeColor = MarbleText,
                 Checked = def,
                 UseVisualStyleBackColor = true,
             };
@@ -179,11 +220,12 @@ public sealed class MainForm : Form
             buttons.Add(rb);
         }
 
-        _resetButton.Location = new Point(519, 18);
-        _resetButton.Size = new Size(178, 23);
+        _resetButton.Location = new Point(519, 16);
+        _resetButton.Size = new Size(178, 26);
+        _resetButton.Font = new Font("Segoe UI", 9f);
         _resetButton.Text = "Change Suit/Reset";
-        _resetButton.UseVisualStyleBackColor = true;
         _resetButton.Click += OnReset;
+        StyleButton(_resetButton);
         group.Controls.Add(_resetButton);
 
         Controls.Add(group);
@@ -205,12 +247,12 @@ public sealed class MainForm : Form
     {
         _nextButton.Enabled = false;
         _checkButton.Enabled = true;
-        _nameCover.Show();
+        CoverName();
 
         foreach (var rb in _choices)
         {
             rb.Checked = false;
-            rb.ForeColor = Color.Black;
+            rb.ForeColor = MarbleText;
         }
 
         var pool = _deck.CardsFor(SelectedSuit());
@@ -255,11 +297,11 @@ public sealed class MainForm : Form
 
         _checkButton.Enabled = false;
         _nextButton.Enabled = true;
-        _nameCover.Hide();
+        RevealName();
 
         foreach (var rb in _choices)
             if (rb.Text == _currentCard.Keywords)
-                rb.ForeColor = Color.Green;
+                rb.ForeColor = CorrectGreen;
 
         UpdateScore();
     }
@@ -276,7 +318,7 @@ public sealed class MainForm : Form
     private void OnCardDetails(object? sender, EventArgs e)
     {
         if (_currentCard is null) return;
-        new DetailForm(_currentCard.Name, _currentCard.Description, _marble).Show();
+        new DetailForm(_currentCard.Name, _currentCard.Description, _marble, Icon).Show();
     }
 
     private void OnSuitRightClick(object? sender, MouseEventArgs e)
@@ -298,7 +340,7 @@ public sealed class MainForm : Form
         }
 
         string title = filter == "All" ? "All Cards" : filter;
-        new DetailForm(title, sb.ToString(), _marble).Show();
+        new DetailForm(title, sb.ToString(), _marble, Icon).Show();
     }
 
     private void UpdateScore() =>
@@ -309,6 +351,86 @@ public sealed class MainForm : Form
     private void ShowCardImage(Card card)
     {
         _cardPanel.BackgroundImage = LoadResourceImage($"{card.Name}.png");
+    }
+
+    // ---- Name veil (cover while guessing, slide away on reveal) ------------
+
+    private void CoverName()
+    {
+        _slideTimer?.Stop();
+        _nameCover.Top = _veilHomeTop;
+        _nameCover.Show();
+        _nameCover.BringToFront();
+    }
+
+    private void RevealName() => StartSlide(toTop: _cardPanel.Height + 6);
+
+    /// <summary>Drops the veil downward off the card like a falling curtain, then hides it.</summary>
+    private void StartSlide(int toTop)
+    {
+        _slideTimer?.Stop();
+        _slideTimer = new System.Windows.Forms.Timer { Interval = 15 };
+        _slideTimer.Tick += (_, _) =>
+        {
+            int step = Math.Max(8, (toTop - _nameCover.Top) / 4); // ease-out
+            if (_nameCover.Top + step >= toTop)
+            {
+                _slideTimer!.Stop();
+                _nameCover.Hide();
+                _nameCover.Top = _veilHomeTop; // reset for next round (stays hidden)
+            }
+            else
+            {
+                _nameCover.Top += step;
+            }
+        };
+        _slideTimer.Start();
+    }
+
+    /// <summary>
+    /// The "Mystic Veil" that hides the card name: a deep velvet band with a faint
+    /// gold moon-and-stars motif and a small caption. Opaque, so nothing shows through.
+    /// </summary>
+    private sealed class MysticVeil : Panel
+    {
+        private static readonly Color Velvet = Color.FromArgb(24, 22, 32);
+
+        public MysticVeil()
+        {
+            DoubleBuffered = true;
+            BackColor = Velvet;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+            var rect = ClientRectangle;
+            using (var bg = new SolidBrush(Velvet))
+                g.FillRectangle(bg, rect);
+
+            // Faint gold edge line where the veil meets the card art.
+            using (var edge = new Pen(Color.FromArgb(120, 200, 161, 75)))
+                g.DrawLine(edge, rect.Left + 2, rect.Top + 1, rect.Right - 2, rect.Top + 1);
+
+            // Moon — star — moon motif.
+            using var motifFont = new Font("Segoe UI Symbol", 20f);
+            using var motifBrush = new SolidBrush(Color.FromArgb(180, 200, 161, 75));
+            const string motif = "☾    ✦    ☽";
+            SizeF ms = g.MeasureString(motif, motifFont);
+            float motifY = rect.Top + 16;
+            g.DrawString(motif, motifFont, motifBrush, (Width - ms.Width) / 2f, motifY);
+
+            // Small caption beneath it.
+            using var capFont = new Font("Segoe UI", 9.5f, FontStyle.Italic);
+            using var capBrush = new SolidBrush(Color.FromArgb(150, 222, 210, 180));
+            const string caption = "revealed when ready";
+            SizeF cs = g.MeasureString(caption, capFont);
+            g.DrawString(caption, capFont, capBrush, (Width - cs.Width) / 2f, motifY + ms.Height + 2);
+        }
     }
 
     private Image? LoadResourceImage(string fileName)
@@ -372,6 +494,8 @@ public sealed class MainForm : Form
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
+        _slideTimer?.Stop();
+        _slideTimer?.Dispose();
         _music?.Stop();
         _music?.Dispose();
         base.OnFormClosed(e);

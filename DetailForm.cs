@@ -6,7 +6,7 @@ namespace TarotTraining;
 /// </summary>
 public sealed class DetailForm : Form
 {
-    public DetailForm(string title, string body, Image? background)
+    public DetailForm(string title, string body, Image? background, Icon? icon = null)
     {
         Text = title;
         ClientSize = new Size(784, 461);
@@ -14,6 +14,11 @@ public sealed class DetailForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         BackgroundImage = background;
         BackgroundImageLayout = ImageLayout.Stretch;
+        if (icon is not null) Icon = icon;
+
+        // A multiline TextBox only breaks lines on CR-LF; the card data uses bare LF,
+        // so normalize any mix of line endings to CR-LF or it renders as one run-on block.
+        string normalized = body.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
 
         var box = new TextBox
         {
@@ -25,7 +30,7 @@ public sealed class DetailForm : Form
             Location = new Point(12, 12),
             Size = new Size(ClientSize.Width - 24, ClientSize.Height - 24),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            Text = body,
+            Text = normalized,
         };
         box.Select(0, 0);
         Controls.Add(box);
