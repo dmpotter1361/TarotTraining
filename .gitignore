@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# WiX build symbol files (installer is shipped as a GitHub release asset)
+*.wixpdb
