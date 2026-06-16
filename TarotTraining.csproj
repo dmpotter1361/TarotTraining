@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>TarotTraining</RootNamespace>
+    <AssemblyName>TarotTraining</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Resources\TarotTesting.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Card data + image/audio assets are copied next to the executable and loaded at runtime. -->
+  <ItemGroup>
+    <None Update="cards.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Resources\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Resources\*.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Resources\*.wav" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

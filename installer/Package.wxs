@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tarot Training installer (WiX v4+ syntax).
+  - MajorUpgrade auto-removes any older version on install (no manual uninstall first).
+  - UpgradeCode must stay constant forever; bump Version each release to trigger upgrades.
+  - Version comes from build.ps1 (-d Version=...); the default below is just a fallback.
+  - Files harvests the entire self-contained publish folder.
+-->
+<?ifndef Version ?><?define Version = "1.0.0" ?><?endif?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Tarot Training"
+           Manufacturer="Michael Potter"
+           Version="$(var.Version)"
+           UpgradeCode="6F0C2A9E-7B1D-4C3A-9E2F-2D4B8A1C5E70"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <!-- Replace any older install automatically; block downgrades with a friendly message. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Tarot Training is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\Resources\TarotTesting.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/dmpotter1361/TarotTraining" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Tarot Training" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Tarot Training" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="AppShortcut" />
+    </Feature>
+
+    <!-- All published files (self-contained app + .NET runtime). -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <!-- Start-Menu shortcut. -->
+    <Component Id="AppShortcut" Directory="ProgramMenuFolder" Guid="*">
+      <Shortcut Id="StartMenuShortcut"
+                Name="Tarot Training"
+                Description="Learn the tarot deck with a flash-card quiz"
+                Target="[INSTALLFOLDER]TarotTraining.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <RegistryValue Root="HKCU" Key="Software\TarotTraining" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+  </Package>
+</Wix>

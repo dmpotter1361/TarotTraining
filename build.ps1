@@ -1,0 +1,25 @@
+<#
+    Reproducible build for Tarot Training.
+    Publishes the self-contained app and builds the MSI installer.
+    Paths are computed from this script's location, so it works from any clone.
+
+    Usage:  pwsh ./build.ps1 [-Version 1.0.0]
+    Requires: .NET 10 SDK, and WiX v5  (dotnet tool install --global wix --version 5.0.2)
+#>
+param([string]$Version = "1.0.0")
+
+$ErrorActionPreference = "Stop"
+$root = $PSScriptRoot
+$pub  = Join-Path $root "publish"
+$proj = Join-Path $root "TarotTraining.csproj"
+$wxs  = Join-Path $root "installer\Package.wxs"
+$msi  = Join-Path $root "installer\TarotTraining-$Version-x64.msi"
+
+Write-Host "Publishing self-contained build..." -ForegroundColor Cyan
+if (Test-Path $pub) { Remove-Item $pub -Recurse -Force }
+dotnet publish $proj -c Release -r win-x64 --self-contained true -p:Version=$Version -o $pub
+
+Write-Host "Building MSI ($Version)..." -ForegroundColor Cyan
+wix build $wxs -d "PublishDir=$pub" -d "Version=$Version" -arch x64 -o $msi
+
+Write-Host "Done: $msi" -ForegroundColor Green
