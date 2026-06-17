@@ -6,6 +6,9 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
+        // Match the manifest's PerMonitorV2 awareness so the UI scales with the user's
+        // display scaling / font size instead of overlapping at fixed positions.
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
 
         TarotDeck deck;
         try

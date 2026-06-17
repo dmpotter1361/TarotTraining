@@ -8,6 +8,7 @@ public sealed class DetailForm : Form
 {
     public DetailForm(string title, string body, Image? background, Icon? icon = null)
     {
+        AutoScaleMode = AutoScaleMode.Dpi;
         Text = title;
         ClientSize = new Size(784, 461);
         MinimumSize = new Size(800, 500);

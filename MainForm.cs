@@ -54,7 +54,9 @@ public sealed class MainForm : Form
     private readonly Panel _cardPanel = new();
     private readonly MysticVeil _nameCover = new();
     private System.Windows.Forms.Timer? _slideTimer;
-    private int _veilHomeTop;
+
+    /// <summary>Where the veil rests (flush to the card's lower band); computed so it stays correct under DPI scaling.</summary>
+    private int VeilHomeTop => _cardPanel.Height - _nameCover.Height;
 
     private readonly RadioButton[] _choices = new RadioButton[4];
     private readonly Button _checkButton = new();
@@ -77,6 +79,10 @@ public sealed class MainForm : Form
     {
         _deck = deck;
         _marble = LoadResourceImage("Marble.png");
+
+        // Scale the whole fixed layout by DPI so it holds together at any display
+        // scaling / font size (set before controls are added).
+        AutoScaleMode = AutoScaleMode.Dpi;
 
         Text = "Tarot Training";
         ClientSize = new Size(726, 588);
@@ -105,9 +111,8 @@ public sealed class MainForm : Form
         _cardPanel.BackgroundImageLayout = ImageLayout.Stretch;
 
         // The veil sits over the lower name band of the card and slides away on reveal.
-        _veilHomeTop = 388;
-        _nameCover.Location = new Point(-2, _veilHomeTop);
         _nameCover.Size = new Size(290, 120);
+        _nameCover.Location = new Point(-2, VeilHomeTop);
         _cardPanel.Controls.Add(_nameCover);
         _nameCover.BringToFront();
 
@@ -358,7 +363,7 @@ public sealed class MainForm : Form
     private void CoverName()
     {
         _slideTimer?.Stop();
-        _nameCover.Top = _veilHomeTop;
+        _nameCover.Top = VeilHomeTop;
         _nameCover.Show();
         _nameCover.BringToFront();
     }
@@ -377,7 +382,7 @@ public sealed class MainForm : Form
             {
                 _slideTimer!.Stop();
                 _nameCover.Hide();
-                _nameCover.Top = _veilHomeTop; // reset for next round (stays hidden)
+                _nameCover.Top = VeilHomeTop; // reset for next round (stays hidden)
             }
             else
             {
